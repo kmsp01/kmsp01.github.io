@@ -1,38 +1,156 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <title>访客验证</title>
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>访客验证 - 请完成验证</title>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <style>
+    /* 页面重置与基础样式 */
+    * {
+      box-sizing: border-box;
+    }
+    body, html {
+      height: 100%;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(135deg, #f0f4f8, #d9e2ec);
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      max-width: 400px;
+      width: 100%;
+      padding: 30px 25px 40px;
+      border-radius: 12px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 12px;
+      font-weight: 600;
+      font-size: 1.8rem;
+      color: #1e2a78;
+    }
+    p {
+      margin-top: 0;
+      margin-bottom: 28px;
+      font-size: 1rem;
+      color: #555;
+      line-height: 1.5;
+    }
+    .cf-turnstile {
+      margin-bottom: 30px;
+      display: inline-block;
+      /* Turnstile 验证框自带大小，这里只做居中 */
+    }
+    .btn {
+      background-color: #1e2a78;
+      border: none;
+      color: white;
+      font-weight: 600;
+      font-size: 1rem;
+      padding: 12px 25px;
+      border-radius: 8px;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.3s ease;
+      display: inline-block;
+      width: 100%;
+    }
+    .btn:disabled {
+      background-color: #a0a8d9;
+      cursor: not-allowed;
+    }
+    .btn:hover:not(:disabled) {
+      background-color: #16356d;
+    }
+    .error-message {
+      color: #cc4444;
+      margin-top: 10px;
+      font-size: 0.9rem;
+      min-height: 20px;
+    }
+  </style>
 </head>
 <body>
-    <h2>请完成人机验证，代表你是一个人类！</h2>
-    <div class="cf-turnstile"
-         data-sitekey="0x4AAAAAABqpQ1XS61ufb765"
-         data-callback="onVerify">
-    </div>
-    <script charset="UTF-8" id="LA_COLLECT" src="//sdk.51.la/js-sdk-pro.min.js"></script>
-    <script>LA.init({id:"KLePn9Ts8Y9Hb2K9",ck:"KLePn9Ts8Y9Hb2K9"})</script>
-    
-    <script>
+  <div class="container" role="main" aria-label="访客验证">
+    <h1>请完成人机验证</h1>
+    <p>为了保护网站安全，请完成下面的验证码验证。</p>
+
+    <div
+      class="cf-turnstile"
+      data-sitekey="0x4AAAAAABqpQ1XS61ufb765"
+      data-callback="onVerify"
+      data-error-callback="onError"
+      data-expired-callback="onExpire"
+    ></div>
+
+    <button id="btnSubmit" class="btn" disabled>提交验证</button>
+    <div id="errorMsg" class="error-message" aria-live="polite"></div>
+  </div>
+
+  <script>
+    const btnSubmit = document.getElementById('btnSubmit');
+    const errorMsg = document.getElementById('errorMsg');
+    let currentToken = null;
+
+    // 验证成功时调用
     function onVerify(token) {
-        fetch("https://yz.kmsp001.shop", { // Worker 地址
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: new URLSearchParams({ "cf-turnstile-response": token })
-        })
+      currentToken = token;
+      errorMsg.textContent = '';
+      btnSubmit.disabled = false;
+    }
+
+    // 验证失败回调
+    function onError() {
+      currentToken = null;
+      btnSubmit.disabled = true;
+      errorMsg.textContent = '验证码加载失败，请刷新页面重试。';
+    }
+
+    // 验证过期回调
+    function onExpire() {
+      currentToken = null;
+      btnSubmit.disabled = true;
+      errorMsg.textContent = '验证码已过期，请重新验证。';
+    }
+
+    btnSubmit.addEventListener('click', () => {
+      if (!currentToken) {
+        errorMsg.textContent = '请先完成验证码验证。';
+        return;
+      }
+      btnSubmit.disabled = true;
+      errorMsg.textContent = '正在验证，请稍候...';
+
+      fetch('https://yz.kmsp001.shop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ 'cf-turnstile-response': currentToken }),
+      })
         .then(res => res.json())
         .then(data => {
-            if (data.success) {
-                window.location.href = "https://app.kmsp001.shop"; // 跳转网址
-            } else {
-                alert("验证失败，请重试");
+          if (data.success) {
+            window.location.href = 'https://app.kmsp001.shop';
+          } else {
+            errorMsg.textContent = '验证失败，请重试。';
+            btnSubmit.disabled = false;
+            // 让 Turnstile 重置，重新验证
+            if (window.turnstile) {
+              window.turnstile.reset();
             }
+          }
         })
-        .catch(err => {
-            alert("网络错误: " + err);
+        .catch(() => {
+          errorMsg.textContent = '网络错误，请检查您的连接后重试。';
+          btnSubmit.disabled = false;
         });
-    }
-    </script>
+    });
+  </script>
 </body>
 </html>
