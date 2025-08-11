@@ -1,15 +1,37 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta charset="utf-8" />
-<script charset="UTF-8" id="LA_COLLECT" src="//sdk.51.la/js-sdk-pro.min.js"></script>
-<script>LA.init({id:"KLePn9Ts8Y9Hb2K9",ck:"KLePn9Ts8Y9Hb2K9"})</script>
-        <meta http-equiv="refresh" content="1;url=https://app.kmsp001.shop"> 
-        
-        <title>正在打开网站</title>
-    </head>
-    <body>
-
+<head>
+    <meta charset="UTF-8">
+    <title>访客验证</title>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+</head>
+<body>
+    <h2>请完成验证</h2>
+    <div class="cf-turnstile"
+         data-sitekey="0x4AAAAAABqpQ1XS61ufb765"
+         data-callback="onVerify">
+    </div>
+    <script charset="UTF-8" id="LA_COLLECT" src="//sdk.51.la/js-sdk-pro.min.js"></script>
+    <script>LA.init({id:"KLePn9Ts8Y9Hb2K9",ck:"KLePn9Ts8Y9Hb2K9"})</script>
     
-    </body>
+    <script>
+    function onVerify(token) {
+        fetch("https://yz.kmsp001.shop", { // Worker 地址
+            method: "POST",
+            body: new URLSearchParams({ "cf-turnstile-response": token })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = "https://app.kmsp001.shop"; // 跳转网址
+            } else {
+                alert("验证失败，请重试");
+            }
+        })
+        .catch(err => {
+            alert("网络错误: " + err);
+        });
+    }
+    </script>
+</body>
 </html>
