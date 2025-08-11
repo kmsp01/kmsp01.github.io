@@ -18,6 +18,7 @@
     function onVerify(token) {
         fetch("https://yz.kmsp001.shop", { // Worker 地址
             method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
             body: new URLSearchParams({ "cf-turnstile-response": token })
         })
         .then(res => res.json())
